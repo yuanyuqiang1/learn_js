@@ -1,0 +1,112 @@
+﻿How to run Jtreg
+
+In this chapter,we will cover the following topics:
+◆A introduction to jtreg
+◆Building jtreg from the source
+◆Running the standard set of OpenJDK tests on different jvm
+◆Test results
+　　
+　　1.A introduction to jtreg
+
+　　　Jtreg is a testing framework for Java,it’s a primary tool for running unit and regression tests in OpenJDK. Jtreg can run a test in a separate instance of JVM with a specific set of parameters,testing Java applets,running shell scripts as tests,running GUI tests which require user interaction,and so on.
+
+　　　2.Building jtreg from the source
+
+　　　The simplest way to get started with jtreg is to download a built version of jtreg , unpack it , and run tests.
+      https://adopt-openjdk.ci.cloudbees.com/job/jtreg/lastSuccessfulBuild/artifact
+　　　
+　　　But when run on other jvm,such as iMRT, ART . It may can’t work,so the best way is to build from source. 
+　　　◆Getting ready : Need an Internet connection
+　　　The following simple steps will show how to get the jtreg source code and make the built:
+　　　
+(1)Download the sources from http://hg.openjdk.java.net/code-tools/jtreg ,To do this,just execute the following command that will clone the jtreg source tree in the local folder.
+
+(2)Installed Ant software on the machine
+   Download from http://ant.apache.org/. and then unpack it.
+
+(3)Make a new directory name lib,put all dependency files into jtreg/lib . such as jh2.0 , jtharness , junit4.10 , testng , xalan-j_2_7_1.
+
+(4)Now, it is time to write the script that will execute the build,put the following script code into the make.sh file of the jtreg folder , created in the first step:
+#!/bin/sh
+export JDK17HOME=/home/yuanyuqiang/tools/jdk1.8.0_131/
+export JAVAHELP_HOME=/home/yuanyuqiang/test/openjdk8u/jtreg/lib/jh2.0/javahelp
+export ANTHOME=/usr/share/ant
+export JTHARNESS_HOME=/home/yuanyuqiang/test/openjdk8u/jtreg/lib/jtharness
+export JUNIT_JAR=/home/yuanyuqiang/test/openjdk8u/jtreg/lib/junit4.10/junit-4.10.jar
+export TESTNG_HOME=/home/yuanyuqiang/test/openjdk8u/jtreg/lib/testng
+export TESTNG_JAR=/home/yuanyuqiang/test/openjdk8u/jtreg/lib/testng/testng-6.9.5.jar
+export XALANHOME=/home/yuanyuqiang/test/openjdk8u/jtreg/lib/xalan-j_2_7_1
+make -C make
+
+(5)The final step is to just run that script:
+yuanyuqiang@yuanyuqiang-VirtualBox:~/test/openjdk8u/jtreg$ ./make.sh 
+After the build,which should take just a few seconds,the resulting JAR file (jtreg.jar) can be found in the build/images/jtreg/lib/.
+
+So ,we can change the source code and build jar file for different jvm .
+
+3.Running the standard set of OpenJDK tests on different jvm
+
+Standard tests are available only in three root folder for JDK7 and in four folders for JDK8 . There are hotspot , jdk , langtools , and nashorn (for jdk8 only).
+
+The way tests are organized varies with the dependency of the area they are testing, for example, hotspot and langtools are mostly grouped by functional areas they are testing and, then, by bugs (by their numbers). The jdk folder is mostly organized by the package name, as this set of tests covers the Java APIs.
+
+Keep in mind that some tests might fail, but it does not mean that something is particularly wrong with OpenJDK. It just means that there are some situations when it is rather hard to
+create a test that can pass in any environment. For example, there can be tests that need a special network configuration or some other sort of special environment, which might not be
+set up on the machine.
+
+As we will be running tests for OpenJDK,The machine should be set up for the OpenJDK build,as we will be using OpenJDK make files to execute the test run.
+
+(1)run on oracle jvm:
+
+yuanyuqiang@yuanyuqiang-VirtualBox:~/test/openjdk8u/jtreg/build/images/jtreg/lib$ java -jar jtreg.jar ~/test/openjdk8u/hotspot/test
+ 
+When test jdk , langtools , and nashorn , just like test hotspot .
+A long time after,we can found JTReport and JTWork in the folder,detail refer to Test results.
+
+(2)run on ART:
+
+When run jtreg.jar on ART.we need .dex file ,so the first step is to build .dex jar file . the script jar2dexjar in art/tools folder.
+After run the script . A new jtreg.jar be built .
+
+yuanyuqiang@yuanyuqiang-VirtualBox:~/art/tools$ ./jar2dexjar.sh ~/test/openjdk8u/jtreg/build/images/jtreg/lib/jtreg.jar
+
+The next step is to run jtreg on ART.
+
+yuanyuqiang@yuanyuqiang-VirtualBox:~/art/linux-x86-O-user/bin$ ./art -cp ~/test/openjdk8u/jtreg/build/images/jtreg/lib/jtreg.jar:~/test/openjdk8u/jtreg/build/images/jtreg/lib/javatest.jar:~/test/openjdk8u/jtreg/build/images/jtreg/lib/jh.jar:~/test/openjdk8u/jtreg/build/images/jtreg/lib/junit.jar:~/test/openjdk8u/jtreg/build/images/jtreg/lib/junit.jar com.sun.javatest.regtest.Main ~/test/openjdk8u/hotspot/test/
+
+Description about the command:
+-cp : when run jtreg need the necessary dependency files.
+com.sun.javatest.regtest.Main : the main class of jtreg.jar
+~/test/openjdk8u/hotspot/test/ : test the hotspot 
+
+When test jdk , langtools , and nashorn , just like test hotspot .
+A long time after,we can found JTReport and JTWork in the folder,detail refer to Test results.
+
+(3)run on iMRT:
+first step : cp the libcore.jeff to ~/jdk8u/jtreg/build/images/jtreg/lib/
+
+then,run jtreg on iMRT:
+yuanyuqiang@yuanyuqiang-VirtualBox:~/jdk8u$ ~/Beihai/iMRT -cp jtreg/build/images/jtreg/lib/ -main_class com.sun.javatest.regtest.Main -jar jtreg/build/images/jtreg/lib/jtreg.jar -verbose:fail jdk/test/
+
+When test hotspot , langtools , and nashorn , just like test jdk.
+A long time after,we can found JTReport and JTWork in the folder,detail refer to Test results.
+
+(4)Command line options
+
+Refer to
+http://openjdk.java.net/jtreg/command-help.html 
+have a detailed description
+
+4.Test results
+
+Summary reports are generated in the report directory,in plain text and HTML formats.
+The plain text report in JTreport/text/summary.txt contains one test result per line .
+Detailed results foe each test are stored in the work directory,in .jtr files.There are plain text files that are easy enough to read directly if needed.
+Individual tests can be in one of four states.
+◆Not run : the test has not yet been run.
+◆Passed : the test has been run successfully.
+◆Failed : the test has been run , but didn’t succeed.
+◆Error : the test could not be run for some reason.
+
+All the test report have uploaded to crtl001/Beihai_Project/GB_code/Jtreg_ART
+
